@@ -33,7 +33,7 @@ struct MapScreen: View {
 
     @State private var camera: MapCameraPosition = .region(MapScreen.campusRegion)
     @State private var showingCreate = false
-    @State private var location = LocationProvider()
+    @State private var location = LocationProvider.shared
     @State private var sheetDetent: CampusSheet.Detent = .peek
 
     /// The events to draw. Recomputed whenever the query or the filters change.
@@ -42,20 +42,33 @@ struct MapScreen: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            map
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                map
 
-            VStack(spacing: 0) {
-                FilterBar(options: $options, counts: EventFilter.tagCounts(events))
-                Spacer()
+                VStack(spacing: 0) {
+                    FilterBar(options: $options, counts: EventFilter.tagCounts(events))
+                    Spacer()
+                }
+
+                // The events themselves, sitting over the map. This is the content;
+                // the map behind it is context.
+                CampusSheet(events: events,
+                            user: user,
+                            selectedEvent: $selectedEvent,
+                            detent: $sheetDetent)
+
+                // Keep map controls above the visible edge of the event panel.
+                // They disappear when the panel is full because there is no
+                // meaningful unobscured map area left to control.
+                if sheetDetent != .full {
+                    recenterControls
+                        .frame(maxWidth: .infinity, maxHeight: .infinity,
+                               alignment: .bottomTrailing)
+                        .padding(.bottom, geo.size.height * sheetDetent.fraction + 12)
+                        .transition(.opacity)
+                }
             }
-
-            // The events themselves, sitting over the map. This is the content;
-            // the map behind it is context.
-            CampusSheet(events: events,
-                        user: user,
-                        selectedEvent: $selectedEvent,
-                        detent: $sheetDetent)
         }
         .navigationTitle("Campus Map")
         .navigationBarTitleDisplayMode(.inline)
@@ -96,6 +109,7 @@ struct MapScreen: View {
             // LocationProvider asks for it in onAppear below.
             UserAnnotation()
         }
+        .tint(.blue)
         // Flat, no points of interest, no traffic: Apple's map should recede so our
         // pins read as the brightest thing on screen.
         .mapStyle(.standard(elevation: .flat,
@@ -103,9 +117,6 @@ struct MapScreen: View {
                             showsTraffic: false))
         .mapControls {
             MapCompass()
-        }
-        .overlay(alignment: .bottomTrailing) {
-            recenterControls
         }
         .onAppear { location.request() }
         .overlay(alignment: .top) {
@@ -158,7 +169,6 @@ extension MapScreen {
             }
         }
         .padding(.trailing, Theme.screenPadding)
-        .padding(.bottom, 24)
     }
 
     /// CUSTOM VIEW: one circular map control. Built once and reused so both

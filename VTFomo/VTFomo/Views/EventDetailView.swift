@@ -232,14 +232,24 @@ struct EventDetailView: View {
                     Text(reason)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button {
-                        directions.openInMaps(coordinate: event.coordinate,
-                                              name: event.locationName)
-                    } label: {
-                        Label("Open in Maps", systemImage: "map")
-                            .font(.subheadline.weight(.semibold))
+                    HStack {
+                        Button {
+                            directions.route(to: event.coordinate)
+                        } label: {
+                            Label("Try Again", systemImage: "arrow.clockwise")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button {
+                            directions.openInMaps(coordinate: event.coordinate,
+                                                  name: event.locationName)
+                        } label: {
+                            Label("Open in Maps", systemImage: "map")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
                 }
             }
         }

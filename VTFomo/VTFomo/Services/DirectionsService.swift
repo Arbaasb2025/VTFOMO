@@ -35,6 +35,7 @@ final class DirectionsService: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var destination: CLLocationCoordinate2D?
     private var hasRequestedFix = false
+    private var locationTimeout: DispatchWorkItem?
 
     override init() {
         super.init()
@@ -72,6 +73,7 @@ final class DirectionsService: NSObject, CLLocationManagerDelegate {
     }
 
     func reset() {
+        locationTimeout?.cancel()
         state = .idle
         route = nil
         hasRequestedFix = false
@@ -80,14 +82,54 @@ final class DirectionsService: NSObject, CLLocationManagerDelegate {
     // MARK: - Private
 
     private func beginLocating() {
-        state = .locating
+        locationTimeout?.cancel()
         hasRequestedFix = true
-        manager.requestLocation()
+
+        // The campus map has usually obtained this fix already. Reusing the
+        // shared value avoids a second Core Location race in event details.
+        if let location = LocationProvider.shared.lastLocation,
+           location.horizontalAccuracy >= 0 {
+            calculate(from: location.coordinate)
+            return
+        }
+
+        // SwiftUI's map can already have a usable fix even though this separate
+        // CLLocationManager has not delivered a delegate callback yet. Simulator
+        // fixes can retain an old timestamp, so accuracy is the useful validity
+        // check here rather than age.
+        if let location = manager.location,
+           location.horizontalAccuracy >= 0 {
+            calculate(from: location.coordinate)
+            return
+        }
+
+        // A SwiftUI UserAnnotation can be visible before a separate Core
+        // Location client receives its first fix, particularly in Simulator.
+        // Keep requesting in the background, but never trap the interface in an
+        // indefinite spinner; the user can retry or hand off to Maps immediately.
+        state = .unavailable("Your precise location isn't ready yet. Try again in a moment or open the event in Maps.")
+
+        // Continuous updates are more dependable than a one-shot request in the
+        // Simulator. We stop them as soon as a usable fix arrives.
+        manager.startUpdatingLocation()
     }
 
     /// Asks MapKit for a walking route and keeps the fastest one.
     private func calculate(from origin: CLLocationCoordinate2D) {
         guard let destination else { return }
+        locationTimeout?.cancel()
+        manager.stopUpdatingLocation()
+
+        // Give the user an immediate useful estimate. MapKit routing requires a
+        // network response and can stall even after location has succeeded; the
+        // UI must not continue claiming that it is still finding the user.
+        let straightLineMetres = CLLocation(latitude: origin.latitude, longitude: origin.longitude)
+            .distance(from: CLLocation(latitude: destination.latitude,
+                                       longitude: destination.longitude))
+        state = .ready(
+            minutes: max(1, Int((straightLineMetres / 84).rounded())),
+            metres: straightLineMetres
+        )
 
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: MKPlacemark(coordinate: origin))
@@ -113,10 +155,10 @@ final class DirectionsService: NSObject, CLLocationManagerDelegate {
             } catch {
                 // Straight-line fallback so the UI still says something useful
                 // when the routing server is unreachable.
-                let metres = CLLocation(latitude: origin.latitude, longitude: origin.longitude)
-                    .distance(from: CLLocation(latitude: destination.latitude,
-                                               longitude: destination.longitude))
-                state = .ready(minutes: max(1, Int((metres / 84).rounded())), metres: metres)
+                state = .ready(
+                    minutes: max(1, Int((straightLineMetres / 84).rounded())),
+                    metres: straightLineMetres
+                )
             }
         }
     }
@@ -129,6 +171,13 @@ final class DirectionsService: NSObject, CLLocationManagerDelegate {
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        if (error as? CLError)?.code == .locationUnknown {
+            // This error is temporary, especially in the Simulator. Keep the
+            // request alive and let the timeout provide the eventual fallback.
+            return
+        }
+        locationTimeout?.cancel()
+        manager.stopUpdatingLocation()
         state = .unavailable("Couldn't work out where you are.")
     }
 
