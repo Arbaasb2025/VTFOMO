@@ -107,7 +107,6 @@ struct ProfileScreen: View {
                 .font(.footnote)
         }
     }
-
     private var dashboardSection: some View {
         Section {
             if myEvents.isEmpty {
@@ -115,19 +114,32 @@ struct ProfileScreen: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(myEvents) { event in
-                    NavigationLink {
-                        EventDetailView(event: event, user: user)
-                    } label: {
-                        EventRow(event: event, showSaveCount: true)
-                    }
-                }
+                let now = Date()
+                dashboardRows("Upcoming and live", events: myEvents.filter { $0.endTime > now }.reversed())
+                dashboardRows("Past", events: myEvents.filter { $0.endTime <= now })
             }
         } header: {
             Text("My events")
         } footer: {
             // FUNCTIONAL: reduce across every event this organizer created.
             Text("\(myEvents.count) events · \(EventFilter.totalSaves(myEvents)) total saves")
+        }
+    }
+
+    @ViewBuilder
+    private func dashboardRows(_ title: String, events: [Event]) -> some View {
+        if !events.isEmpty {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+
+            ForEach(events) { event in
+                NavigationLink {
+                    EventDetailView(event: event, user: user)
+                } label: {
+                    EventRow(event: event, showSaveCount: true)
+                }
+            }
         }
     }
 

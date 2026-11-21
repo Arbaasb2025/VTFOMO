@@ -70,6 +70,23 @@ struct MainTabView: View {
         } detail: {
             NavigationStack {
                 MapScreen(user: user, options: $options, selectedEvent: $selectedEvent)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .topBarLeading) {
+                            NavigationLink {
+                                SavedEventsScreen(user: user)
+                            } label: {
+                                Label("Saved", systemImage: "bookmark")
+                            }
+                            .accessibilityIdentifier("openSaved")
+
+                            NavigationLink {
+                                ProfileScreen(user: user)
+                            } label: {
+                                Label("Profile", systemImage: "person.crop.circle")
+                            }
+                            .accessibilityIdentifier("openProfile")
+                        }
+                    }
             }
         }
         .navigationSplitViewStyle(.balanced)

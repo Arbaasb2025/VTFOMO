@@ -19,9 +19,11 @@ struct LoginView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let scenes = ["CampusGolden", "CampusEvening"]
+
     private var slideshowRunning: Bool {
         scenePhase == .active && !paused && !reduceMotion && !showingLogin
     }
+
     @FocusState private var focusedField: Field?
     private enum Field { case email, password }
 
@@ -76,6 +78,8 @@ struct LoginView: View {
                                 .background(.white, in: RoundedRectangle(cornerRadius: 18))
                             }
                             .buttonStyle(WelcomePressStyle())
+                            .accessibilityIdentifier("openSignIn")
+
                             if auth.rememberedDisplayName(context: context) != nil && biometricsReady {
                                 Button(action: attemptBiometrics) {
                                     Label("Welcome back · Use \(auth.biometricName)", systemImage: auth.biometricSymbol)
@@ -89,6 +93,7 @@ struct LoginView: View {
                                     .font(.subheadline).padding(.vertical, 12)
                                     .frame(maxWidth: .infinity)
                             }
+
                             if let errorText {
                                 Text(errorText).font(.footnote).foregroundStyle(.white)
                                     .accessibilityIdentifier("loginError")
@@ -112,8 +117,11 @@ struct LoginView: View {
             .task(id: slideshowRunning) {
                 guard slideshowRunning else { return }
                 while !Task.isCancelled {
-                    do { try await Task.sleep(for: .seconds(7)) }
-                    catch { return }
+                    do {
+                        try await Task.sleep(for: .seconds(7))
+                    } catch {
+                        return
+                    }
                     guard !Task.isCancelled else { return }
                     selectSlide((slide + 1) % scenes.count)
                 }
@@ -167,7 +175,9 @@ struct LoginView: View {
     }
 
     private func selectSlide(_ index: Int) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 1.2)) { slide = index }
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 1.2)) {
+            slide = index
+        }
     }
 
     private var signInSheet: some View {
@@ -180,7 +190,9 @@ struct LoginView: View {
                             .font(.subheadline).foregroundStyle(.secondary)
                     }
                     loginCard
-                    if auth.rememberedDisplayName(context: context) != nil { biometricCard }
+                    if auth.rememberedDisplayName(context: context) != nil {
+                        biometricCard
+                    }
                     Button("Sign-in help & demo accounts") { showingHelp = true }
                         .font(.footnote).foregroundStyle(.secondary).frame(maxWidth: .infinity)
                 }
@@ -189,9 +201,11 @@ struct LoginView: View {
             .scrollDismissesKeyboard(.interactively)
             .background(Theme.background)
             .navigationTitle("Sign in").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) {
-                Button("Close") { showingLogin = false }
-            } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { showingLogin = false }
+                }
+            }
             .sheet(isPresented: $showingSignUp) { SignUpView() }
             .sheet(isPresented: $showingHelp) { helpSheet }
         }
@@ -208,21 +222,27 @@ struct LoginView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     Text(biometricExplanation).font(.subheadline).foregroundStyle(.secondary)
                     Button("Check biometric availability", action: refreshBiometrics)
+
                     #if targetEnvironment(simulator)
                     Text("Simulator: choose Features → Face ID → Enrolled. Tap Use Face ID, then choose Features → Face ID → Matching Face.")
                         .font(.footnote).foregroundStyle(.secondary)
                     #endif
+
                     #if DEBUG
                     demoAccounts
                     #endif
-                }.padding(24)
+                }
+                .padding(24)
             }
             .background(Theme.background)
             .navigationTitle("Sign-in help").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { showingHelp = false }
-            } }
-        }.tint(Theme.maroon)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { showingHelp = false }
+                }
+            }
+        }
+        .tint(Theme.maroon)
     }
 
     private var loginCard: some View {
@@ -241,6 +261,7 @@ struct LoginView: View {
                 .padding(16).background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Theme.hairline, lineWidth: 1))
             }
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("Password").font(.caption.weight(.semibold))
                 HStack(spacing: 12) {
@@ -253,26 +274,33 @@ struct LoginView: View {
                 .padding(16).background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Theme.hairline, lineWidth: 1))
             }
+
             if let errorText {
                 Label(errorText, systemImage: "exclamationmark.circle.fill")
                     .font(.footnote).foregroundStyle(.red)
                     .accessibilityIdentifier("loginError")
             }
+
             Button(action: attemptLogin) {
                 HStack {
                     Spacer()
-                    if isBusy { ProgressView().tint(.white) }
-                    else { Text("Log In").fontWeight(.semibold); Image(systemName: "arrow.right") }
+                    if isBusy {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Log In").fontWeight(.semibold)
+                        Image(systemName: "arrow.right")
+                    }
                     Spacer()
-                }.padding(.vertical, 7)
+                }
+                .padding(.vertical, 7)
             }
             .buttonStyle(PressButtonStyle(prominent: true))
             .disabled(!canSubmit)
+
             Button("New here? Create an account") { showingSignUp = true }
                 .font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity)
                 .padding(.vertical, 4).disabled(isBusy || auth.isWorking)
         }
-
     }
 
     private var biometricCard: some View {
@@ -282,6 +310,7 @@ struct LoginView: View {
                 Text("or").font(.caption).foregroundStyle(.secondary)
                 Rectangle().fill(Theme.hairline).frame(height: 1)
             }
+
             if let name = auth.rememberedDisplayName(context: context) {
                 if biometricsReady {
                     Button(action: attemptBiometrics) {
@@ -295,8 +324,11 @@ struct LoginView: View {
                     Button("Check biometric availability", action: refreshBiometrics)
                         .font(.subheadline).disabled(isBusy || auth.isWorking)
                 }
+
                 Button("Forget \(name) on this device") {
-                    auth.forgetDevice(); errorText = nil; refreshBiometrics()
+                    auth.forgetDevice()
+                    errorText = nil
+                    refreshBiometrics()
                 }
                 .font(.caption).foregroundStyle(.secondary)
                 .disabled(isBusy || auth.isWorking)
@@ -317,7 +349,8 @@ struct LoginView: View {
     private var demoAccounts: some View {
         DisclosureGroup("Explore demo accounts", isExpanded: $showingDemoAccounts) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Choose an account to fill the sign-in form.").font(.footnote).foregroundStyle(.secondary)
+                Text("Choose an account to fill the sign-in form.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 demoAccount("Administrator", email: "arbaasb@gmail.com", symbol: "shield.lefthalf.filled")
                 demoAccount("Area Coordinator", email: "cord@vt.edu", symbol: "building.2")
                 demoAccount("Authorized Organizer", email: "org@vt.edu", symbol: "checkmark.seal")
@@ -325,7 +358,8 @@ struct LoginView: View {
                 demoAccount("Student", email: "stu@vt.edu", symbol: "graduationcap")
                 Text("Demo password: \(SampleData.demoPassword). Organizers start pending approval. These accounts are local to this installation.")
                     .font(.caption).foregroundStyle(.secondary)
-            }.padding(.top, 12)
+            }
+            .padding(.top, 12)
         }
         .font(.subheadline.weight(.semibold))
         .padding(18).background(Theme.card, in: RoundedRectangle(cornerRadius: 22))
@@ -334,8 +368,11 @@ struct LoginView: View {
 
     private func demoAccount(_ title: String, email accountEmail: String, symbol: String) -> some View {
         Button {
-            email = accountEmail; password = SampleData.demoPassword
-            errorText = nil; focusedField = nil; showingHelp = false
+            email = accountEmail
+            password = SampleData.demoPassword
+            errorText = nil
+            focusedField = nil
+            showingHelp = false
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: symbol).frame(width: 24)
@@ -345,37 +382,58 @@ struct LoginView: View {
                 }
                 Spacer()
                 Image(systemName: "arrow.up.left").font(.caption)
-            }.padding(.vertical, 7)
-        }.buttonStyle(.plain).foregroundStyle(Theme.maroon)
+            }
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.maroon)
+        .accessibilityIdentifier("demo." + accountEmail)
     }
     #endif
 
-    private func refreshBiometrics() { biometricsReady = auth.biometricsAvailable }
+    private func refreshBiometrics() {
+        biometricsReady = auth.biometricsAvailable
+    }
 
     private func attemptBiometrics() {
         guard !isBusy else { return }
-        focusedField = nil; isBusy = true; errorText = nil
+        focusedField = nil
+        isBusy = true
+        errorText = nil
         Task {
             _ = await auth.unlockWithBiometrics(context: context)
-            errorText = auth.errorMessage; isBusy = false; refreshBiometrics()
+            errorText = auth.errorMessage
+            isBusy = false
+            refreshBiometrics()
         }
     }
 
     private func attemptLogin() {
         guard canSubmit else { return }
-        focusedField = nil; isBusy = true; errorText = nil
-        do { try auth.logIn(email: email, password: password, context: context) }
-        catch { errorText = error.localizedDescription }
+        focusedField = nil
+        isBusy = true
+        errorText = nil
+        do {
+            try auth.logIn(email: email, password: password, context: context)
+        } catch {
+            errorText = error.localizedDescription
+        }
         isBusy = false
     }
 }
 
 private struct WelcomePressStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .opacity(configuration.isPressed ? 0.8 : 1)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.975 : 1)
-            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.75), value: configuration.isPressed)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.75),
+                value: configuration.isPressed
+            )
     }
 }

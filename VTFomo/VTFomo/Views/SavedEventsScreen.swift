@@ -2,8 +2,7 @@
 //  SavedEventsScreen.swift
 //  VT FOMO
 //
-//  Everything the user has saved, split into what is still coming up and what
-//  has already happened.
+//  Shows the user's saved events in two groups: upcoming and past.
 //
 
 import SwiftUI
@@ -14,8 +13,8 @@ struct SavedEventsScreen: View {
     @Environment(\.modelContext) private var context
     let user: AppUser
 
-    /// FUNCTIONAL: pull the events out of the join records, drop any that were
-    /// deleted, and split them by whether they have ended.
+    /// Extract the events from their save records, omit canceled events,
+    /// and order them by start time.
     private var saved: [Event] {
         user.savedEvents
             .compactMap(\.event)
@@ -47,13 +46,17 @@ struct SavedEventsScreen: View {
                                 NavigationLink {
                                     EventDetailView(event: event, user: user)
                                 } label: {
-                                    EventRow(event: event,
-                                             isPriority: event.isPriority(for: user))
+                                    EventRow(
+                                        event: event,
+                                        isPriority: event.isPriority(for: user)
+                                    )
                                 }
+                                .accessibilityIdentifier("savedRow." + event.title)
                             }
                             .onDelete { unsave(from: upcoming, at: $0) }
                         }
                     }
+
                     if !past.isEmpty {
                         Section("Already happened") {
                             ForEach(past) { event in
@@ -62,14 +65,15 @@ struct SavedEventsScreen: View {
                                 } label: {
                                     EventRow(event: event)
                                 }
+                                .accessibilityIdentifier("savedRow." + event.title)
                             }
                             .onDelete { unsave(from: past, at: $0) }
                         }
                     }
                 }
                 .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .listRowSpacing(10)
+                .scrollContentBackground(.hidden)
+                .listRowSpacing(10)
             }
         }
         .background(Theme.background)
@@ -77,12 +81,13 @@ struct SavedEventsScreen: View {
         .navigationTitle("Saved")
     }
 
-    /// Swipe to remove a saved event, cancelling its reminder too.
+    /// Removing a saved event also cancels its scheduled reminder.
     private func unsave(from list: [Event], at offsets: IndexSet) {
         for index in offsets {
             let event = list[index]
             guard let record = user.savedEvents.first(where: { $0.event?.id == event.id })
             else { continue }
+
             if let id = record.notificationID {
                 NotificationService.cancelReminder(id: id)
             }

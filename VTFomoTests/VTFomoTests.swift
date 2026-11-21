@@ -68,27 +68,33 @@ struct EventValidationTests {
     @Test("Rejects an empty title")
     func rejectsEmptyTitle() {
         let now = Date()
-        let problem = Validation.eventProblem(title: "   ",
-                                              start: now,
-                                              end: now.addingTimeInterval(3600))
+        let problem = Validation.eventProblem(
+            title: "   ",
+            start: now,
+            end: now.addingTimeInterval(3600)
+        )
         #expect(problem != nil)
     }
 
     @Test("Rejects an end time before the start")
     func rejectsBackwardsTimes() {
         let now = Date()
-        let problem = Validation.eventProblem(title: "Study Jam",
-                                              start: now,
-                                              end: now.addingTimeInterval(-600))
+        let problem = Validation.eventProblem(
+            title: "Study Jam",
+            start: now,
+            end: now.addingTimeInterval(-600)
+        )
         #expect(problem != nil)
     }
 
     @Test("Accepts a sensible event")
     func acceptsValid() {
         let now = Date()
-        let problem = Validation.eventProblem(title: "Study Jam",
-                                              start: now,
-                                              end: now.addingTimeInterval(7200))
+        let problem = Validation.eventProblem(
+            title: "Study Jam",
+            start: now,
+            end: now.addingTimeInterval(7200)
+        )
         #expect(problem == nil)
     }
 }
@@ -98,28 +104,35 @@ struct EventValidationTests {
 @Suite("Event visibility")
 struct VisibilityTests {
 
-    /// Builds a throwaway user and hall. These are SwiftData models but they
-    /// work as plain objects when never inserted into a context.
     private func makeUser(hallID: String, role: UserRole = .student) -> AppUser {
-        let hall = Building(id: hallID, name: hallID.capitalized,
-                            area: "Test", latitude: 0, longitude: 0)
-        return AppUser(email: "\(hallID)@vt.edu",
-                       displayName: "Test User",
-                       passwordHash: "x",
-                       role: role,
-                       homeBuilding: hall)
+        let hall = Building(
+            id: hallID,
+            name: hallID.capitalized,
+            area: "Test",
+            latitude: 0,
+            longitude: 0
+        )
+        return AppUser(
+            email: "\(hallID)@vt.edu",
+            displayName: "Test User",
+            passwordHash: "x",
+            role: role,
+            homeBuilding: hall
+        )
     }
 
-    private func makeEvent(visibility: EventVisibility,
-                           halls: [String] = []) -> Event {
-        Event(title: "Test Event",
-              details: "",
-              locationName: "Somewhere",
-              latitude: 0, longitude: 0,
-              startTime: Date(),
-              endTime: Date().addingTimeInterval(3600),
-              visibility: visibility,
-              visibleBuildingIDs: halls)
+    private func makeEvent(visibility: EventVisibility, halls: [String] = []) -> Event {
+        Event(
+            title: "Test Event",
+            details: "",
+            locationName: "Somewhere",
+            latitude: 0,
+            longitude: 0,
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(3600),
+            visibility: visibility,
+            visibleBuildingIDs: halls
+        )
     }
 
     @Test("Everyone can see a public event")
@@ -144,8 +157,12 @@ struct VisibilityTests {
 
     @Test("A user with no hall set cannot see any private event")
     func noHallBlocked() {
-        let user = AppUser(email: "new@vt.edu", displayName: "New",
-                           passwordHash: "x", role: .student)
+        let user = AppUser(
+            email: "new@vt.edu",
+            displayName: "New",
+            passwordHash: "x",
+            role: .student
+        )
         let event = makeEvent(visibility: .hallOnly, halls: ["pritchard"])
         #expect(!event.isVisible(to: user))
     }
@@ -168,20 +185,32 @@ struct PermissionTests {
 
     @Test("A student cannot publish")
     func studentCannotPublish() {
-        let user = AppUser(email: "s@vt.edu", displayName: "S",
-                           passwordHash: "x", role: .student)
+        let user = AppUser(
+            email: "s@vt.edu",
+            displayName: "S",
+            passwordHash: "x",
+            role: .student
+        )
         #expect(!user.canPublishEvents())
     }
 
     @Test("An organizer can only restrict events to their own hall")
     func organizerScopedToOwnHall() {
-        let pritchard = Building(id: "pritchard", name: "Pritchard",
-                                 area: "Upper Quad", latitude: 0, longitude: 0)
-        let lee = Building(id: "lee", name: "Lee",
-                           area: "Upper Quad", latitude: 0, longitude: 0)
-        let sl = AppUser(email: "sl@vt.edu", displayName: "SL",
-                         passwordHash: "x", role: .organizer,
-                         homeBuilding: pritchard)
+        let pritchard = Building(
+            id: "pritchard", name: "Pritchard",
+            area: "Upper Quad", latitude: 0, longitude: 0
+        )
+        let lee = Building(
+            id: "lee", name: "Lee",
+            area: "Upper Quad", latitude: 0, longitude: 0
+        )
+        let sl = AppUser(
+            email: "sl@vt.edu",
+            displayName: "SL",
+            passwordHash: "x",
+            role: .organizer,
+            homeBuilding: pritchard
+        )
 
         #expect(!sl.canPublishToBuilding(pritchard))
         sl.approvedOrganizerHallID = pritchard.id
@@ -191,13 +220,21 @@ struct PermissionTests {
 
     @Test("A coordinator covers every hall in their area but no others")
     func coordinatorScopedToArea() {
-        let inArea = Building(id: "lee", name: "Lee",
-                              area: "Upper Quad", latitude: 0, longitude: 0)
-        let outOfArea = Building(id: "aj", name: "AJ",
-                                 area: "Central", latitude: 0, longitude: 0)
-        let coordinator = AppUser(email: "c@vt.edu", displayName: "C",
-                                  passwordHash: "x", role: .areaCoordinator,
-                                  managedArea: "Upper Quad")
+        let inArea = Building(
+            id: "lee", name: "Lee",
+            area: "Upper Quad", latitude: 0, longitude: 0
+        )
+        let outOfArea = Building(
+            id: "aj", name: "AJ",
+            area: "Central", latitude: 0, longitude: 0
+        )
+        let coordinator = AppUser(
+            email: "c@vt.edu",
+            displayName: "C",
+            passwordHash: "x",
+            role: .areaCoordinator,
+            managedArea: "Upper Quad"
+        )
 
         #expect(coordinator.canPublishToBuilding(inArea))
         #expect(!coordinator.canPublishToBuilding(outOfArea))
@@ -205,9 +242,14 @@ struct PermissionTests {
 
     @Test("Nobody can grant a role at or above their own")
     func cannotPromoteAboveSelf() {
-        let coordinator = AppUser(email: "c@vt.edu", displayName: "C",
-                                  passwordHash: "x", role: .areaCoordinator,
-                                  managedArea: "Upper Quad")
+        let coordinator = AppUser(
+            email: "c@vt.edu",
+            displayName: "C",
+            passwordHash: "x",
+            role: .areaCoordinator,
+            managedArea: "Upper Quad"
+        )
+
         #expect(coordinator.canGrantRole(.organizer, inArea: "Upper Quad"))
         #expect(!coordinator.canGrantRole(.areaCoordinator, inArea: "Upper Quad"))
         #expect(!coordinator.canGrantRole(.admin, inArea: "Upper Quad"))
@@ -221,34 +263,72 @@ struct PermissionTests {
 struct FilterTests {
 
     private func makeUser() -> AppUser {
-        let hall = Building(id: "pritchard", name: "Pritchard",
-                            area: "Upper Quad", latitude: 0, longitude: 0)
-        return AppUser(email: "r@vt.edu", displayName: "R",
-                       passwordHash: "x", role: .student, homeBuilding: hall)
+        let hall = Building(
+            id: "pritchard", name: "Pritchard",
+            area: "Upper Quad", latitude: 0, longitude: 0
+        )
+        return AppUser(
+            email: "r@vt.edu",
+            displayName: "R",
+            passwordHash: "x",
+            role: .student,
+            homeBuilding: hall
+        )
     }
 
-    private func makeEvent(title: String,
-                           hoursFromNow: Double,
-                           tag: EventTag = .social,
-                           halls: [String] = []) -> Event {
+    private func makeEvent(
+        title: String,
+        hoursFromNow: Double,
+        tag: EventTag = .social,
+        halls: [String] = []
+    ) -> Event {
         let start = Date().addingTimeInterval(hoursFromNow * 3600)
-        return Event(title: title, details: "", locationName: "X",
-                     latitude: 0, longitude: 0,
-                     startTime: start,
-                     endTime: start.addingTimeInterval(3600),
-                     visibility: halls.isEmpty ? .publicEvent : .hallOnly,
-                     tag: tag,
-                     visibleBuildingIDs: halls)
+        return Event(
+            title: title,
+            details: "",
+            locationName: "X",
+            latitude: 0,
+            longitude: 0,
+            startTime: start,
+            endTime: start.addingTimeInterval(3600),
+            visibility: halls.isEmpty ? .publicEvent : .hallOnly,
+            tag: tag,
+            visibleBuildingIDs: halls
+        )
+    }
+
+    @Test("Today ends at local midnight")
+    func todayExcludesTomorrow() {
+        let midnight = Calendar.current.startOfDay(for: Date())
+        let evening = midnight.addingTimeInterval(-3600)
+        let event = makeEvent(title: "Morning event", hoursFromNow: 0)
+        event.startTime = midnight.addingTimeInterval(3600)
+        event.endTime = midnight.addingTimeInterval(7200)
+
+        let user = makeUser()
+        var options = FilterOptions()
+        options.dayWindow = 1
+
+        let today = EventFilter.visibleEvents(
+            from: [event], for: user, options: options, now: evening
+        )
+        #expect(today.isEmpty)
+
+        options.dayWindow = 7
+        let week = EventFilter.visibleEvents(
+            from: [event], for: user, options: options, now: evening
+        )
+        #expect(week.count == 1)
     }
 
     @Test("Ended events are hidden by default")
     func hidesEnded() {
         let user = makeUser()
-        let events = [makeEvent(title: "Past", hoursFromNow: -5),
-                      makeEvent(title: "Future", hoursFromNow: 5)]
-        let result = EventFilter.visibleEvents(from: events,
-                                               for: user,
-                                               options: FilterOptions())
+        let events = [
+            makeEvent(title: "Past", hoursFromNow: -5),
+            makeEvent(title: "Future", hoursFromNow: 5)
+        ]
+        let result = EventFilter.visibleEvents(from: events, for: user, options: FilterOptions())
         #expect(result.count == 1)
         #expect(result.first?.title == "Future")
     }
@@ -256,8 +336,10 @@ struct FilterTests {
     @Test("Tag filter keeps only matching events")
     func filtersByTag() {
         let user = makeUser()
-        let events = [makeEvent(title: "Pizza", hoursFromNow: 2, tag: .freeFood),
-                      makeEvent(title: "Frisbee", hoursFromNow: 3, tag: .fitness)]
+        let events = [
+            makeEvent(title: "Pizza", hoursFromNow: 2, tag: .freeFood),
+            makeEvent(title: "Frisbee", hoursFromNow: 3, tag: .fitness)
+        ]
         var options = FilterOptions()
         options.tags = [.freeFood]
 
@@ -268,8 +350,10 @@ struct FilterTests {
     @Test("Own-hall events sort above everything else")
     func prioritySortsFirst() {
         let user = makeUser()
-        let events = [makeEvent(title: "Campus wide", hoursFromNow: 1),
-                      makeEvent(title: "My hall", hoursFromNow: 6, halls: ["pritchard"])]
+        let events = [
+            makeEvent(title: "Campus wide", hoursFromNow: 1),
+            makeEvent(title: "My hall", hoursFromNow: 6, halls: ["pritchard"])
+        ]
         let result = EventFilter.visibleEvents(from: events, for: user, options: FilterOptions())
         #expect(result.first?.title == "My hall")
     }
@@ -284,8 +368,10 @@ struct FilterTests {
 
     @Test("Grouping by day produces days in order")
     func groupsByDay() {
-        let events = [makeEvent(title: "Later", hoursFromNow: 50),
-                      makeEvent(title: "Sooner", hoursFromNow: 2)]
+        let events = [
+            makeEvent(title: "Later", hoursFromNow: 50),
+            makeEvent(title: "Sooner", hoursFromNow: 2)
+        ]
         let groups = EventFilter.groupedByDay(events)
         #expect(groups.count == 2)
         #expect(groups[0].day < groups[1].day)

@@ -18,6 +18,7 @@ struct EventListScreen: View {
 
     let user: AppUser
     @Binding var options: FilterOptions
+
     /// Non-nil only in the iPad layout.
     var selection: Binding<Event?>? = nil
 
@@ -27,6 +28,7 @@ struct EventListScreen: View {
     private var events: [Event] {
         let base = EventFilter.visibleEvents(from: allEvents, for: user, options: options)
         guard !searchText.isEmpty else { return base }
+
         return base.filter {
             $0.title.localizedCaseInsensitiveContains(searchText)
                 || $0.locationName.localizedCaseInsensitiveContains(searchText)
@@ -85,6 +87,7 @@ struct EventListScreen: View {
             } label: {
                 EventRow(event: event, isPriority: event.isPriority(for: user))
             }
+            .accessibilityIdentifier("eventRow." + event.title)
             .buttonStyle(.plain)
         } else {
             NavigationLink {
@@ -92,6 +95,7 @@ struct EventListScreen: View {
             } label: {
                 EventRow(event: event, isPriority: event.isPriority(for: user))
             }
+            .accessibilityIdentifier("eventRow." + event.title)
         }
     }
 

@@ -89,6 +89,11 @@ struct MapScreen: View {
         .sheet(item: $selectedEvent) { event in
             NavigationStack {
                 EventDetailView(event: event, user: user)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { selectedEvent = nil }
+                        }
+                    }
             }
             .presentationDetents([.medium, .large])
         }

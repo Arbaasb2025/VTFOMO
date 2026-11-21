@@ -31,10 +31,10 @@ enum EventFilter {
                               options: FilterOptions,
                               now: Date = Date()) -> [Event] {
 
+        let windowStart = options.dayWindow == 1 ? Calendar.current.startOfDay(for: now) : now
         let windowEnd = Calendar.current.date(byAdding: .day,
                                               value: options.dayWindow,
-                                              to: now) ?? now
-
+                                              to: windowStart) ?? now
         // FUNCTIONAL: a chain of filters, each a closure over one condition.
         let savedIDs = Set(user.savedEvents.compactMap { $0.event?.id })
 
